@@ -1,0 +1,48 @@
+:root {
+	--bg-color: #1a1a1a;
+	--panel-bg: #242424;
+	--border-color: #3a3a3a;
+	--text-color: #f0f0f0;
+	--faint-color: #888;
+	--accent-color: #7e57c2;
+	--success-bg: #2e7d32;
+	--error-bg: #c62828;
+}
+* { box-sizing: border-box; }
+body {
+	background-color: var(--bg-color);
+	color: var(--text-color);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	margin: 0;
+}
+.container { max-width: 900px; margin: 0 auto; padding: 2rem; }
+.tabs { margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); }
+.tabs button {
+	background: none; border: none; color: var(--faint-color); padding: 1rem 1.5rem;
+	cursor: pointer; font-size: 1em; border-bottom: 3px solid transparent;
+	margin-bottom: -1px; transition: color 0.2s, border-color 0.2s;
+}
+.tabs button.active { color: var(--text-color); border-bottom-color: var(--accent-color); }
+.panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; }
+.faint { color: var(--faint-color); font-size: 0.9em; }
+button {
+	background: #4a4a4a; color: var(--text-color); border: none; padding: 0.75rem 1.25rem;
+	border-radius: 4px; cursor: pointer; margin-right: 0.5rem; font-size: 1em; transition: background-color 0.2s;
+}
+button:hover { background: #5a5a5a; }
+button:disabled { background: #333; color: #666; cursor: not-allowed; }
+input, select, textarea {
+	width: 100%; padding: 0.75rem; background: #333; color: var(--text-color);
+	border: 1px solid var(--border-color); border-radius: 4px; font-size: 1em;
+}
+textarea { min-height: 120px; resize: vertical; }
+hr { border: none; border-top: 1px solid var(--border-color); margin: 1.5rem 0; }
+.menu-item {
+    text-align: left; background: var(--panel-bg); border: 1px solid var(--border-color); padding: 1rem;
+    width: 100%; margin-bottom: 0.5rem; border-radius: 4px;
+}
+.menu-item strong { display: block; margin-bottom: 0.25rem; }
+.add-card-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.status { margin-top: 1rem; padding: 0.75rem; border-radius: 4px; text-align: center; }
+.status.success { background: var(--success-bg); }
+.status.error { background: var(--error-bg); }
