@@ -1,44 +1,35 @@
 {
+  "productName": "frontend",
+  "version": "0.1.0",
+  "identifier": "github.beautifulmind",
   "build": {
-    "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build",
-    "devPath": "http://localhost:5173",
-    "distDir": "../build",
-    "withGlobalTauri": true
+    "frontendDist": "../www",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
   },
-  "package": {
-    "productName": "beautifulmind",
-    "version": "0.1.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "http": {
-        "scope": ["http://localhost:50051/*"]
-      }
-    },
-    "bundle": {
-      "active": true,
-      "identifier": "com.beautifulmind.dev",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ]
-    },
-    "security": {
-      "csp": null
-    },
+  "app": {
     "windows": [
       {
-        "fullscreen": false,
+        "title": "beautifulmind",
+        "width": 800,
+        "height": 600,
         "resizable": true,
-        "title": "Beautiful Mind",
-        "width": 1200,
-        "height": 800
+        "fullscreen": false
       }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
     ]
   }
 }
