@@ -1,0 +1,38 @@
+deckName: "Core Linear Algebra Concepts"
+deckID: "linalg-v1"
+
+concepts:
+  - id: "concept_vector"
+    name: "Vectors"
+    description: "A mathematical object that has both magnitude and direction."
+  - id: "concept_dot_product_la"
+    name: "Dot Product (Linear Algebra)"
+    description: "An algebraic operation that takes two equal-length sequences of numbers and returns a single number. It represents the projection of one vector onto another."
+  - id: "concept_matrix"
+    name: "Matrices"
+    description: "A rectangular array or table of numbers, symbols, or expressions, arranged in rows and columns."
+
+cards:
+  - id: "card_thesis_linalg"
+    concept_id: "concept_vector"
+    card_type: "Thesis"
+    title: "Linear Algebra Thesis"
+    content: "Linear algebra is the foundation of representing and manipulating data in multi-dimensional space."
+  - id: "card_vector_definition"
+    concept_id: "concept_vector"
+    card_type: "Evidence"
+    title: "Vector Definition"
+    content: "A vector is an entity defined by a magnitude and a direction."
+  - id: "card_dot_product_def"
+    concept_id: "concept_dot_product_la"
+    card_type: "Evidence"
+    title: "Dot Product Definition"
+    content: "The dot product of two vectors A and B is calculated by multiplying their corresponding components and summing the results."
+
+links:
+  - source: "card_vector_definition"
+    target: "card_thesis_linalg"
+    type: "SUPPORTS"
+  - source: "card_dot_product_def"
+    target: "card_thesis_linalg"
+    type: "SUPPORTS"

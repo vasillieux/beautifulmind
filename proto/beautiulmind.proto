@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package beautifulmind;
+
+option go_package = "beautifulmind/proto";
+
+// the services our beautiful mind engine provides
+service BeautifulMind {
+    rpc ListTheses(Empty) returns (ListThesesResponse);
+    rpc StartSession(StartSessionRequest) returns (SessionState);
+    rpc ProcessInput(ProcessInputRequest) returns (SessionState);
+    rpc AddCard(AddCardRequest) returns (Card);
+}
+
+// -- data structures --
+
+message Empty {}
+
+message Card {
+    string id = 1;
+    string deck_id = 2;
+    string concept_id = 3;
+    string title = 4;
+    string content = 5;
+}
+
+message Concept {
+    string id = 1;
+    string name = 2;
+}
+
+message JourneyStep {
+    Card card = 1;
+    bool answered_correctly = 2;
+}
+
+// represents the entire state of a game session
+message SessionState {
+    Card thesis = 1;
+    repeated Card evidence_deck = 2;
+    int32 current_step = 3;
+    repeated JourneyStep journey_log = 4;
+    bool is_evidence_revealed = 5;
+    Card current_card = 6;
+    map<string, Concept> concepts = 7;
+}
+
+// -- request/response messages --
+
+message ListThesesResponse {
+    repeated Card theses = 1;
+}
+
+message StartSessionRequest {
+    string thesis_id = 1;
+}
+
+message ProcessInputRequest {
+    string key = 1;
+    // we'll need a way to pass the session state back and forth,
+    // but for now let's assume the server holds the state.
+}
+
+message AddCardRequest {
+    string title = 1;
+    string content = 2;
+    string concept_id = 3;
+}

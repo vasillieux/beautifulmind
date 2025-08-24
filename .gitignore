@@ -1,0 +1,13 @@
+**/*.db 
+
+build
+beautifulmind
+
+frontend/*svelte-kit/
+frontend/node_modules/
+
+frontend/src-tauri/target 
+
+.env 
+
+**/*.log 
