@@ -27,7 +27,7 @@ cards:
     concept_id: "concept_dot_product_la"
     card_type: "Evidence"
     title: "Dot Product Definition"
-    content: "The dot product of two vectors A and B is calculated by multiplying their corresponding components and summing the results."
+    content: "The dot product of two vectors A and B is calculated by multiplying their corresponding components and summing the results. $$\\sum_1_2{f(i)}$$"
 
 links:
   - source: "card_vector_definition"
