@@ -3,11 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-	"build": "esbuild src/main.ts --bundle --outfile=www/main.js",
+    "build": "esbuild src/main.ts --bundle --outfile=www/main.js"
   },
   "dependencies": {
     "@protobuf-ts/grpcweb-transport": "^2.9.4",
-    "esbuild": "^0.25.9"
+    "@tauri-apps/api": "^2.8.0",
+    "esbuild": "^0.25.9",
+    "katex": "^0.16.22"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",
