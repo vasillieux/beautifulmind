@@ -1,0 +1,29 @@
+{
+  "name": "beautifulmind",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "frontend": "vite",
+    "dev": "concurrently \"npm:backend\" \"npm:frontend\"",
+    "build": "cd backend && npm run build && cd .. && tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.1.0",
+    "better-sqlite3": "^9.4.3",
+    "fastify": "^5.5.0",
+    "js-yaml": "^4.1.0",
+    "katex": "^0.16.9",
+    "tiny-hashes": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.9",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.28",
+    "tsc-watch": "^6.0.4",
+    "typescript": "^5.4.2"
+  }
+}
