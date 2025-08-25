@@ -1,7 +1,6 @@
 import katex from 'katex';
 import { readFile } from '@tauri-apps/plugin-fs';
 
-// --- Type Definitions ---
 type Card = {
     id: string;
     deck_id: string;
@@ -21,7 +20,6 @@ type SessionState = {
 };
 type Correlation = { name: string; similarity: number; };
 
-// --- API Client (Unchanged) ---
 class ApiClient {
     private baseUrl = 'http://localhost:3000';
 
@@ -70,7 +68,7 @@ class BeautifulMindApp {
             this.state.theses = await this.apiClient.getTheses();
             this.state.status = 'ready';
         } catch (e) { this.handleError(e); }
-        this.render();
+        await this.render();
     }
     
     attachGlobalKeyListeners() {
@@ -91,20 +89,115 @@ class BeautifulMindApp {
             const newState = await this.apiClient.processInput(key);
             const shouldFetchCorrelations = this.state.session.currentCard?.id !== newState.currentCard?.id;
             this.state.session = newState; 
-            this.render(shouldFetchCorrelations);
+            await this.render(shouldFetchCorrelations);
         } catch(e) { this.handleError(e); }
     }
     
     handleError(e: any) { console.error(e); this.state.status = 'error'; this.render(); }
     
+    async renderCardContent(text: string): Promise<string> {
+        if (!text) return '';
+    
+        const placeholders = new Map<string, string>();
+        let placeholderId = 0;
+        let processedText = text;
+    
+        // (IMAGES AND $$...$$)
+        // replace all block elements with a temporary, unique placeholder.
+        // prevents the inline parser from ever seeing their content.
+    
+        // Images: ![alt](src)
+        const imageRegex = /!\[(.*?)\]\((.*?)\)/g;
+        for (const match of processedText.matchAll(imageRegex)) {
+            const [fullMatch, alt, url] = match;
+            const placeholder = `__BLOCK_PLACEHOLDER_${placeholderId++}__`;
+            let replacementHtml = '';
+            if (url.startsWith('http')) {
+                replacementHtml = `<img src="${url}" alt="${alt}" class="card-image">`;
+            } else {
+                try {
+                    const assetUrl = url;
+                    replacementHtml = `<img src="${assetUrl}" alt="${alt}" class="card-image">`;
+                } catch (e) {
+                    replacementHtml = `<span class="error">Invalid local image: ${url}</span>`;
+                }
+            }
+            placeholders.set(placeholder, replacementHtml);
+            processedText = processedText.replace(fullMatch, placeholder);
+        }
+
+        const latexRegex = /\$\$(.*?)\$\$|\$([^\$\n]+?)\$/gs;
+        processedText = processedText.replace(latexRegex, (match, blockContent, inlineContent) => {
+            const latex = blockContent ?? inlineContent;
+            const displayMode = blockContent !== undefined;
+            const normalizedLatex = latex.replace(/\\\\/g, '\\');
+            return katex.renderToString(normalizedLatex, { throwOnError: false, displayMode })
+                    .replace(/<span class="katex-mathml">.*?<\/span>/g, '');
+        });
+    
+        const lines = processedText.split('\n');
+        const finalHtmlBlocks: string[] = [];
+    
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (trimmedLine === '') continue;
+    
+            const placeholderMatch = trimmedLine.match(/^__BLOCK_PLACEHOLDER_(\d+)__$/);
+            if (placeholderMatch) {
+                // it's an image block restore it directly without a <p> tag.
+                finalHtmlBlocks.push(placeholders.get(trimmedLine)!);
+            } else if (trimmedLine.startsWith('<div class="katex-display"')) {
+                // it's a KaTeX block add it directly without a <p> tag.
+                finalHtmlBlocks.push(trimmedLine);
+            } else {
+                // restore any images that are inline with text.
+                let inlineRestoredLine = trimmedLine;
+                placeholders.forEach((value, key) => {
+                    inlineRestoredLine = inlineRestoredLine.replace(key, value);
+                });
+                finalHtmlBlocks.push(`<p>${inlineRestoredLine}</p>`);
+            }
+        }
+        
+        return finalHtmlBlocks.join('');
+        
+        // // Block LaTeX: $$...$$
+        // const blockLatexRegex = /\$\$(.*?)\$\$/gs;
+        // processedText = processedText.replace(blockLatexRegex, (match, latex) => {
+        //     const placeholder = `__BLOCK_PLACEHOLDER_${placeholderId++}__`;
+        //     const normalizedLatex = latex.replace(/\\\\/g, '\\');
+        //     const renderedHtml = katex.renderToString(normalizedLatex, { throwOnError: false, displayMode: true });
+        //     placeholders.set(placeholder, renderedHtml);
+        //     return placeholder;
+        // });
+    
+        // // INLINE ELEMENTS ($...$)
+        // // blocks are gone, we can safely process inline elements.
+        // const inlineLatexRegex = /\$([^\$\n]+?)\$/g; // This regex now ignores newlines to be safer
+        // processedText = processedText.replace(inlineLatexRegex, (match, latex) => {
+        //     const normalizedLatex = latex.replace(/\\\\/g, '\\');
+        //     return katex.renderToString(normalizedLatex, { throwOnError: false, displayMode: false });
+        // });
+        // console.log(processedText);
+
+        // // split the text into paragraphs and then substitute the placeholders back in.
+        // let finalHtml = processedText
+        //     .split('\n')
+        //     .filter(line => line.trim() !== '')
+        //     .map(p => `<p>${p}</p>`)
+        //     .join('');
+    
+        // placeholders.forEach((value, key) => {
+        //     finalHtml = finalHtml.replace(`<p>${key}</p>`, value);
+        // });
+    
+        // return finalHtml;
+    }
+
     async render(fetchCorrelations = true) {
         if (this.state.status === 'ready' && this.state.session?.currentCard && fetchCorrelations) {
-            try {
-                this.state.correlations = await this.apiClient.getCorrelations(this.state.session.currentCard.concept_id);
-            } catch (e) {
-                console.warn("Could not fetch correlations", e);
-                this.state.correlations = [];
-            }
+            try { this.state.correlations = await this.apiClient.getCorrelations(this.state.session.currentCard.concept_id); } 
+            catch (e) { console.warn("Could not fetch correlations", e); this.state.correlations = []; }
         }
         
         let content = '';
@@ -112,8 +205,8 @@ class BeautifulMindApp {
         else if (this.state.status === 'error') content = `<div class="panel error"><h1>connection error. is backend running?</h1></div>`;
         else {
             switch (this.state.activeTab) {
-                case 'synapse': content = this.renderSynapse(); break;
-                case 'add': content = this.renderAddCard(); break;
+                case 'synapse': content = await this.renderSynapse(); break;
+                case 'add': content = await this.renderAddCard(); break;
             }
         }
         
@@ -141,31 +234,27 @@ class BeautifulMindApp {
         
         this.rootEl.querySelector('.content')?.addEventListener('click', async (e) => {
             const target = e.target as HTMLElement;
-
             if (target.matches('button[data-action]')) {
                 const action = target.dataset.action;
-                if (action === 'add-card') {
-                    await this.handleAddCard();
-                } else {
-                    await this.processInput(action);
-                }
+                if (action === 'add-card') await this.handleAddCard();
+                else await this.processInput(action);
             } else if (target.closest('.menu-item[data-id]')) {
                 const menuItem = target.closest('.menu-item[data-id]') as HTMLElement;
                 const thesisId = menuItem.dataset.id!;
                 const isInfinite = (target as HTMLElement).dataset.infinite === 'true';
                 try {
                     this.state.session = await this.apiClient.startSession(thesisId, isInfinite);
-                    this.render();
+                    await this.render();
                 } catch(e) { this.handleError(e); }
             }
         });
 
         const contentInput = this.rootEl.querySelector<HTMLTextAreaElement>('#content-input');
         if (contentInput) {
-            contentInput.addEventListener('input', () => {
+            contentInput.addEventListener('input', async () => {
                 const previewEl = this.rootEl.querySelector<HTMLElement>('#preview-content');
                 if (previewEl) {
-                    previewEl.innerHTML = this.renderCardContent(contentInput.value);
+                    previewEl.innerHTML = await this.renderCardContent(contentInput.value);
                 }
             });
         }
@@ -176,7 +265,7 @@ class BeautifulMindApp {
         const contentEl = document.getElementById('content-input') as HTMLTextAreaElement;
         if (!titleEl.value || !contentEl.value) {
             this.state.addCardStatus = 'error';
-            this.render();
+            await this.render();
             return;
         }
         try {
@@ -185,53 +274,10 @@ class BeautifulMindApp {
             titleEl.value = '';
             contentEl.value = '';
         } catch(e) { this.state.addCardStatus = 'error'; }
-        this.render();
-    }
-    
-    // --- NEW UNIFIED RENDERER ---
-    renderCardContent(text: string): string {
-        if (!text) return '';
-        let processedText = text;
-
-        // 1. Render Markdown Images: ![alt](url)
-        processedText = processedText.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => {
-            if (url.startsWith('http')) {
-                // Remote image
-                return `<img src="${url}" alt="${alt}" class="card-image">`;
-            } else {
-                // Local image, needs conversion
-                // const content = readFile(url)
-                
-                // const assetUrl = convertFileSrc(url);
-                return `<img src="${url}" alt="${alt}" class="card-image">`;
-            }
-        });
-
-        // 2. Render Block LaTeX: $$...$$
-        processedText = processedText.replace(/\$\$(.*?)\$\$/gs, (match, latex) => {
-            try { 
-                const normalizedLatex = latex.replace(/\\\\/g, '\\');
-                return katex.renderToString(normalizedLatex, { throwOnError: false, displayMode: true }); 
-            } 
-            catch (e) { return `<span class="error">${match}</span>`; }
-        });
-
-        // 3. Render Inline LaTeX: $...$
-        processedText = processedText.replace(/\$(.*?)\$/g, (match, latex) => {
-            // Avoid rendering $$...$$ as inline
-            if (match.startsWith('$$') && match.endsWith('$$')) return match;
-            try { 
-
-                const normalizedLatex = latex.replace(/\\\\/g, '\\');
-                return katex.renderToString(normalizedLatex, { throwOnError: false, displayMode: false }); 
-            } 
-            catch (e) { return `<span class="error">${match}</span>`; }
-        });
-        
-        return processedText.split('\n\n').map(p => `<p>${p}</p>`).join('');
+        await this.render();
     }
 
-    renderSynapse(): string {
+    async renderSynapse(): Promise<string> {
         if (!this.state.session) {
             return `
                 <div class="panel">
@@ -252,18 +298,15 @@ class BeautifulMindApp {
         
         return `
             <div class="session-grid">
-                <div class="panel context-view">${this.renderContextView()}</div>
-                <div class="panel journey-view">${this.renderJourneyView()}</div>
-                <div class="panel interaction-view">${this.renderInteractionView()}</div>
+                <div class="panel context-view">${await this.renderContextView()}</div>
+                <div class="panel journey-view">${await this.renderJourneyView()}</div>
+                <div class="panel interaction-view">${await this.renderInteractionView()}</div>
             </div>`;
     }
 
-    renderContextView(): string {
+    async renderContextView(): Promise<string> {
         const s = this.state.session!;
-        const relatedHTML = this.state.correlations.map(c => {
-            const highlightClass = c.similarity > 0.8 ? 'highlight-strong' : c.similarity > 0.5 ? 'highlight-medium' : '';
-            return `<span class="related-concept ${highlightClass}">${c.name}</span>`;
-        }).join(' ');
+        const relatedHTML = this.state.correlations.map(c => `<span class="related-concept">${c.name}</span>`).join(' ');
         return `
             <div class="panel-header">CONTEXT VIEW</div>
             <p><strong>Thesis:</strong> ${s.thesis.title}</p>
@@ -271,7 +314,7 @@ class BeautifulMindApp {
         `;
     }
 
-    renderJourneyView(): string {
+    async renderJourneyView(): Promise<string> {
         const s = this.state.session!;
         const evidenceHTML = s.evidenceDeck.map((card, index) => {
             let icon = '○';
@@ -285,13 +328,13 @@ class BeautifulMindApp {
 
         return `
             <div class="panel-header">JOURNEY / THESIS VIEW</div>
-            <div class="thesis-content">${this.renderCardContent(s.thesis.content)}</div>
+            <div class="thesis-content">${await this.renderCardContent(s.thesis.content)}</div>
             <ul class="evidence-list">${evidenceHTML}</ul>
             <p class="progress-bar">Progress: ${s.sprintCompleted} of ${s.sprintTotal} sprint cards answered</p>
         `;
     }
 
-    renderInteractionView(): string {
+    async renderInteractionView(): Promise<string> {
         const s = this.state.session!;
         const card = s.currentCard!;
         
@@ -314,14 +357,14 @@ class BeautifulMindApp {
 
             contentHTML = `
                 <div class="prompt">Prompt: "${card.title}"</div>
-                <div class="answer-area content-view">${this.renderCardContent(card.content)}</div>
+                <div class="answer-area content-view">${await this.renderCardContent(card.content)}</div>
                 ${controlsHTML}
             `;
         }
         return `<div class="panel-header">INTERACTION VIEW</div>${contentHTML}`;
     }
 
-    renderAddCard(): string {
+    async renderAddCard(): Promise<string> {
         let statusHTML = '';
         if (this.state.addCardStatus === 'success') statusHTML = `<p class="status success">card added.</p>`;
         if (this.state.addCardStatus === 'error') statusHTML = `<p class="status error">error adding card.</p>`;
@@ -330,7 +373,7 @@ class BeautifulMindApp {
 
     getStyles(): string {
         return `
-:root { --bg-color: #1a1a1a; --panel-bg: #2a2a2a; --border-color: #444; --text-color: #ddd; --faint-color: #888; --accent-color: #00aaff; --correct-color: #4CAF50; --incorrect-color: #F44336; --highlight1: #7c4dff; --highlight2: #448aff; }
+:root { --bg-color: #1a1a1a; --panel-bg: #2a2a2a; --border-color: #444; --text-color: #ddd; --faint-color: #888; --accent-color: #00aaff; --correct-color: #4CAF50; --incorrect-color: #F44336; }
 * { box-sizing: border-box; }
 body { background-color: var(--bg-color); color: var(--text-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; }
 .container { max-width: 1200px; margin: auto; padding: 1rem; }
@@ -344,14 +387,11 @@ body { background-color: var(--bg-color); color: var(--text-color); font-family:
 .session-grid { display: grid; grid-template-columns: 1fr; grid-template-rows: auto; gap: 1rem; }
 @media (min-width: 1000px) { .session-grid { grid-template-columns: 3fr 2fr; grid-template-areas: "context context" "journey interaction"; } .context-view { grid-area: context; } .journey-view { grid-area: journey; } .interaction-view { grid-area: interaction; } }
 .related-concept { display: inline-block; background: #333; padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 0.9em; border: 1px solid #333; }
-.highlight-medium { animation: pulse-medium 2s infinite ease-in-out; } .highlight-strong { animation: pulse-strong 1.5s infinite ease-in-out; }
-@keyframes pulse-medium { 0%, 100% { border-color: #333; } 50% { border-color: var(--highlight2); } }
-@keyframes pulse-strong { 0%, 100% { border-color: #333; } 50% { border-color: var(--highlight1); } }
 .thesis-content { font-style: italic; border-left: 3px solid var(--accent-color); padding-left: 1rem; margin-bottom: 1rem; }
 .thesis-content p:first-child, .content-view p:first-child { margin-top: 0; }
 .thesis-content p:last-child, .content-view p:last-child { margin-bottom: 0; }
 .evidence-list { list-style: none; padding: 0; margin: 0; }
-.evidence-list li { padding: 0.5rem; border-radius: 4px; transition: background-color 0.2s; border: 1px solid transparent; }
+.evidence-list li { padding: 0.5rem; border-radius: 4px; }
 .evidence-list li.active { background-color: #3c3c3c; } .evidence-list .icon { display: inline-block; width: 1.5em; font-weight: bold; }
 .progress-bar { color: var(--faint-color); font-size: 0.9em; text-align: right; margin-top: 1rem; }
 .prompt { font-size: 1.1em; margin-bottom: 1rem; background-color: #111; padding: 0.75rem; border-radius: 4px; }
