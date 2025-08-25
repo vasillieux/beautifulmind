@@ -8,8 +8,11 @@
   "dependencies": {
     "@protobuf-ts/grpcweb-transport": "^2.9.4",
     "@tauri-apps/api": "^2.8.0",
+    "@tauri-apps/cli": "^2.8.2",
+    "@tauri-apps/plugin-fs": "^2.4.2",
     "esbuild": "^0.25.9",
-    "katex": "^0.16.22"
+    "katex": "^0.16.22",
+    "tauri": "^0.15.0"
   },
   "devDependencies": {
     "@protobuf-ts/plugin": "^2.9.4",

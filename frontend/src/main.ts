@@ -284,7 +284,7 @@ class BeautifulMindApp {
                     <h2>Select a Thesis to Begin Your Journey</h2>
                     ${this.state.theses.map(thesis => `
                         <div class="menu-item" data-id="${thesis.id}">
-                            <div><strong>${thesis.title}</strong><span class="faint">from deck '${thesis.deck_id}'</span></div>
+                            <div><strong>${thesis.title}</strong><span class="faint"> from deck '${thesis.deck_id}'</span></div>
                             <div><button data-infinite="false">Start Sprint</button><button data-infinite="true">Start Infinite Journey</button></div>
                         </div>
                     `).join('') || '<p class="faint">No theses found. Check your deck files.</p>'}
